@@ -73,6 +73,8 @@ function RocketChatBot (botkit, config) {
           await driver.sendToRoomId(newMessage, message.channel)
         } else if (message.type === 'message') {
           await driver.sendToRoomId(newMessage, message.channel)
+        } else if (message.type === 'message_received') {
+           await driver.sendToRoomId(newMessage, message.channel)
         }
         cb()
       }
