@@ -1,8 +1,9 @@
 var Botkit = require('botkit')
 const { driver } = require('@rocket.chat/sdk')
 const utils = require('./utils')
+const request = require('request');
 
-function RocketChatBot (botkit, config) {
+function RocketChatBot(botkit, config) {
   var controller = Botkit.core(config || {})
   // transform the string value from .env to bool.
   var SSL = (config.rocketchat_ssl === 'true')
@@ -14,21 +15,13 @@ function RocketChatBot (botkit, config) {
       // make the connection with RocketChat
       await driver.connect({ host: config.rocketchat_host, useSsl: SSL })
       await driver.login({ username: config.rocketchat_bot_user, password: config.rocketchat_bot_pass })
-      await utils.addToRooms(config.rocketchat_bot_rooms)
       await driver.subscribeToMessages()
       bot.connected = true
     } catch (error) {
       bot.connected = false
-      console.log(error)
     }
 
     if (bot.connected) {
-      var options = {
-        dm: config.rocketchat_bot_direct_messages,
-        livechat: config.rocketchat_bot_live_chat,
-        edited: config.rocketchat_bot_edited
-      }
-
       // trigger when every message is sent from any source enabled from
       // options
       driver.respondToMessages(async function (err, message, meta) {
@@ -43,8 +36,10 @@ function RocketChatBot (botkit, config) {
         } else {
           controller.ingest(bot, message)
         }
-      }, options)
+      }, {})
     }
+
+    controller.bot = bot
   }
 
   controller.defineBot(function (botkit, config) {
@@ -101,9 +96,9 @@ function RocketChatBot (botkit, config) {
         for (var c = 0; c < botkit.tasks[t].convos.length; c++) {
           if (
             botkit.tasks[t].convos[c].isActive() &&
-                        botkit.tasks[t].convos[c].source_message.user === message.user &&
-                        botkit.tasks[t].convos[c].source_message.channel === message.channel &&
-                        botkit.excludedEvents.indexOf(message.type) === -1 // this type of message should not be included
+            botkit.tasks[t].convos[c].source_message.user === message.user &&
+            botkit.tasks[t].convos[c].source_message.channel === message.channel &&
+            botkit.excludedEvents.indexOf(message.type) === -1 // this type of message should not be included
           ) {
             cb(botkit.tasks[t].convos[c])
             return
